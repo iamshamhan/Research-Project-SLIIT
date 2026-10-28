@@ -64,9 +64,13 @@ Other text returns an explicit unsupported result. A general Sinhala-to-English 
 
 `processing_ms` covers decode, colour conversion, extraction and temporal preparation, excluding transport. CSV columns are `session_started_utc,condition,elapsed_ms,processing_ms,roundtrip_ms`. Timing reports cannot substantiate recognition accuracy or robustness.
 
-## Verification
+## Timed benchmarks and capture guidance
 
-Production build, TypeScript checks, formatting, four backend tests and dependency consistency checks pass. Browser tracking was observed at approximately 19–20 FPS over two minutes, with overlay and stop controls exercised. This is an informal smoke check, not a controlled benchmark. Desktop sizing and narrow-screen fallback were inspected. End-to-end CSV file download remains a manual acceptance check.
+Expand **Timed benchmark** to run a 30-, 60-, or 120-second measurement after a five-second warm-up. Camera capture ends automatically. Export the JSON report for measured FPS, latency mean/P50/P95/max, raw timing samples, landmark availability, condition and device notes. Interrupted or empty runs are explicitly marked invalid/incomplete. Capture hints suggest bringing the body, hands or face into view; they allow one-handed signing and do not recognize signs. See `docs/benchmark-protocol.md` for the repeatable procedure and limitations. Frontend timing/guidance tests run with `npm test` (Node.js 22.18+ or 24 recommended).
+
+## Verification results
+
+Production build, TypeScript checks, formatting, four backend tests, three frontend benchmark/guidance tests and dependency consistency checks pass. Browser tracking was observed at approximately 19–20 FPS over two minutes, with overlay and stop controls exercised. This is an informal smoke check, not a controlled benchmark. Desktop sizing and narrow-screen fallback were inspected. End-to-end CSV file download remains a manual acceptance check.
 
 From `backend`, install `requirements-dev.txt` and run:
 

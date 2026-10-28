@@ -1,5 +1,19 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import {
+  BenchmarkRecorder,
+  captureGuidance,
+  type BenchmarkSummary,
+} from "./benchmark";
+type BenchmarkReport = BenchmarkSummary & {
+  started_at_utc: string;
+  condition: string;
+  hardware: string;
+  browser: string;
+  logical_processors: number;
+  resolution: number[];
+  feature_spec: string;
+};
 
 type Sample = {
   elapsed_ms: number;
@@ -36,12 +50,37 @@ export function useSignBridge() {
     media?: MediaStream;
     timer?: ReturnType<typeof setTimeout>;
     watchdog?: ReturnType<typeof setTimeout>;
+    benchmarkTick?: ReturnType<typeof setInterval>;
   }>({});
   const generation = useRef(0);
   const active = useRef(false);
   const samples = useRef<Sample[]>([]);
   const startedAt = useRef("");
   const sessionCondition = useRef("Baseline");
+  const recorder = useRef<BenchmarkRecorder | null>(null);
+  const benchmarkRequested = useRef(false);
+  const runMetadata = useRef({
+    started_at_utc: "",
+    condition: "",
+    hardware: "",
+    browser: "",
+    logical_processors: 0,
+    resolution: [640, 480],
+    feature_spec: "holistic-543-xyz-v0",
+  });
+  const [benchmarkSeconds, setBenchmarkSeconds] = useState(60);
+  const [hardware, setHardware] = useState("");
+  const [benchmarkProgress, setBenchmarkProgress] = useState<{
+    stage: string;
+    remainingSeconds: number;
+  } | null>(null);
+  const [benchmarkReport, setBenchmarkReport] =
+    useState<BenchmarkReport | null>(null);
+  const [guidance, setGuidance] = useState({
+    level: "waiting",
+    message: "Start the camera for capture guidance.",
+  });
+  const hintCandidate = useRef({ message: "", since: 0 });
   const [condition, setCondition] = useState("Baseline");
   const [status, setStatus] = useState("Ready for your session");
   const [phase, setPhase] = useState<"idle" | "connecting" | "live" | "error">(
@@ -64,31 +103,68 @@ export function useSignBridge() {
     resources.current = {};
     clearTimeout(old.timer);
     clearTimeout(old.watchdog);
+    clearInterval(old.benchmarkTick);
     old.socket?.close();
     old.media?.getTracks().forEach((track) => track.stop());
   }
-  function stop() {
+  function finishSession(reason: "completed" | "stopped" | "error") {
+    if (recorder.current) {
+      setBenchmarkReport({
+        ...recorder.current.finish(performance.now(), reason),
+        ...runMetadata.current,
+      });
+      setBenchmarkProgress({
+        stage: reason === "completed" ? "complete" : "interrupted",
+        remainingSeconds: 0,
+      });
+      recorder.current = null;
+    }
+    if (
+      !recorder.current &&
+      benchmarkRequested.current &&
+      reason !== "completed"
+    )
+      setBenchmarkProgress({ stage: "interrupted", remainingSeconds: 0 });
+    benchmarkRequested.current = false;
     release();
     if (video.current) video.current.srcObject = null;
     overlay.current?.getContext("2d")?.clearRect(0, 0, 640, 480);
     setDetected({});
     setPhase("idle");
-    setStatus("Session stopped · report available");
+    setStatus(
+      reason === "completed"
+        ? "Benchmark complete · report ready"
+        : "Session stopped · report available",
+    );
+    setGuidance({
+      level: "waiting",
+      message: "Start the camera for capture guidance.",
+    });
+  }
+  function stop() {
+    finishSession("stopped");
   }
   useEffect(() => () => release(), []);
 
-  async function start() {
+  async function start(benchmarkMode = false) {
     if (active.current) return;
     active.current = true;
+    benchmarkRequested.current = benchmarkMode;
     const attempt = ++generation.current;
     const current = () => active.current && generation.current === attempt;
     const fail = (message: string) => {
       if (!current()) return;
-      stop();
+      finishSession("error");
       setPhase("error");
       setStatus(message);
     };
     samples.current = [];
+    setBenchmarkReport(null);
+    setBenchmarkProgress(
+      benchmarkMode ? { stage: "connecting", remainingSeconds: 5 } : null,
+    );
+    hintCandidate.current = { message: "", since: 0 };
+    setGuidance({ level: "waiting", message: "Waiting for tracking signals…" });
     startedAt.current = new Date().toISOString();
     sessionCondition.current = condition;
     setMetrics({ fps: 0, processing: 0, latency: 0, frames: 0, seconds: 0 });
@@ -185,6 +261,25 @@ export function useSignBridge() {
         }
         clearTimeout(resources.current.watchdog);
         begun = performance.now();
+        if (benchmarkMode) {
+          recorder.current = new BenchmarkRecorder(begun, benchmarkSeconds);
+          runMetadata.current = {
+            started_at_utc: new Date().toISOString(),
+            condition: sessionCondition.current,
+            hardware: hardware.trim() || "Not provided",
+            browser: navigator.userAgent,
+            logical_processors: navigator.hardwareConcurrency || 0,
+            resolution: [640, 480],
+            feature_spec: "holistic-543-xyz-v0",
+          };
+          setBenchmarkProgress(recorder.current.progress(begun));
+          resources.current.benchmarkTick = setInterval(() => {
+            if (!current() || !recorder.current) return;
+            const progress = recorder.current.progress(performance.now());
+            setBenchmarkProgress(progress);
+            if (progress.stage === "complete") finishSession("completed");
+          }, 250);
+        }
         setPhase("live");
         setStatus("Live · movement tracking");
         send();
@@ -215,6 +310,22 @@ export function useSignBridge() {
           frames++;
           const elapsed = now - begun,
             latency = now - sent;
+          recorder.current?.record(
+            now,
+            {
+              elapsed_ms: elapsed,
+              processing_ms: result.processing_ms,
+              roundtrip_ms: latency,
+            },
+            result.detected,
+          );
+          const hint = captureGuidance(result.detected);
+          if (hintCandidate.current.message !== hint.message)
+            hintCandidate.current = { message: hint.message, since: now };
+          if (now - hintCandidate.current.since >= 600)
+            setGuidance((previous) =>
+              previous.message === hint.message ? previous : hint,
+            );
           samples.current.push({
             elapsed_ms: elapsed,
             processing_ms: result.processing_ms,
@@ -275,6 +386,19 @@ export function useSignBridge() {
       );
     }
   }
+  function downloadBenchmark() {
+    if (!benchmarkReport) return;
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(benchmarkReport, null, 2)], {
+        type: "application/json",
+      }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `signbridge-benchmark-${benchmarkReport.started_at_utc.replaceAll(":", "-")}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   function download() {
     const rows = samples.current;
     if (!rows.length) return;
@@ -295,6 +419,15 @@ export function useSignBridge() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   return {
+    benchmarkSeconds,
+    setBenchmarkSeconds,
+    hardware,
+    setHardware,
+    benchmarkProgress,
+    benchmarkReport,
+    guidance,
+    startBenchmark: () => start(true),
+    downloadBenchmark,
     video,
     overlay,
     phase,

@@ -44,3 +44,9 @@ Measured FPS:
 Timing CSV location:
 Demo recording location:
 Known limitations:
+
+## Added Component C evidence tools
+
+Timed benchmarking now provides five-second warm-up exclusion, configurable measurement duration, automatic stop, FPS, latency mean/P50/P95/max, raw measured timing samples and detection availability in a JSON report. Capture guidance uses landmark presence and allows one-handed signing. See `benchmark-protocol.md`.
+
+Browser smoke test on 28 October 2026: 553 measured frames over 30.0 seconds, displayed 18.4 FPS, mean round trip approximately 45 ms and P95 approximately 58 ms. Automatic completion and camera stop were observed. Hardware notes were not supplied and activity/lighting were not controlled; this is a functional smoke check, not a final experimental result or recognition benchmark. A repeatable controlled run on the presentation laptop remains required.

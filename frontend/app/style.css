@@ -1180,3 +1180,110 @@ footer .small-dot {
     gap: 5px;
   }
 }
+.capture-guidance {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  max-width: 90%;
+  padding: 8px 13px;
+  border-radius: 20px;
+  background: #20383ed9;
+  color: #fff;
+  font-size: 11px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+.capture-guidance.ready {
+  background: #17674edb;
+}
+.capture-guidance.warning {
+  background: #6b5424e0;
+}
+.benchmark-panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.benchmark-panel > summary {
+  padding: 14px 18px;
+  font-size: 11px;
+  color: #567880;
+}
+.benchmark-panel > summary > span {
+  float: right;
+  color: var(--accent);
+  font-size: 10px;
+}
+.benchmark-body {
+  padding: 0 18px 16px;
+}
+.benchmark-body p {
+  font-size: 10px;
+  line-height: 1.7;
+  color: #799198;
+}
+.benchmark-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0;
+}
+.benchmark-fields label,
+.hardware-label {
+  font-size: 10px;
+  color: #657e86;
+  display: block;
+}
+.benchmark-fields select {
+  margin-top: 6px;
+}
+.hardware-label input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 8px 9px;
+  font-size: 11px;
+  color: var(--ink);
+  background: #fafcfc;
+}
+.benchmark-body .benchmark-progress {
+  color: var(--accent);
+  font-weight: 600;
+  margin-top: 10px;
+}
+.benchmark-result {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--ink);
+}
+.benchmark-numbers {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0;
+}
+.benchmark-numbers span {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 9px;
+  color: #80959c;
+}
+.benchmark-numbers b {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.benchmark-body .benchmark-limitation {
+  font-size: 9px;
+  margin-top: 12px;
+  color: #8b9ca2;
+}

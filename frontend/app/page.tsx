@@ -159,6 +159,14 @@ export default function Home() {
                   aria-hidden="true"
                 />
               </div>
+              {busy && (
+                <div
+                  className={`capture-guidance ${session.guidance.level}`}
+                  role="status"
+                >
+                  {session.guidance.message}
+                </div>
+              )}
               {!busy && (
                 <div className="camera-placeholder">
                   <span className="placeholder-icon">
@@ -189,7 +197,7 @@ export default function Home() {
               <div className="start-controls">
                 <button
                   className={`primary-button ${busy ? "stop-button" : ""}`}
-                  onClick={busy ? session.stop : session.start}
+                  onClick={busy ? session.stop : () => session.start()}
                 >
                   <span aria-hidden="true">{busy ? "■" : "●"}</span>
                   {busy ? "End session" : "Start session"}
@@ -292,6 +300,140 @@ export default function Home() {
               translation model is not connected yet.
             </p>
           </section>
+          <details
+            className="benchmark-panel"
+            open={session.benchmarkProgress ? true : undefined}
+          >
+            <summary>
+              Timed benchmark{" "}
+              <span>
+                {session.benchmarkProgress
+                  ? session.benchmarkProgress.stage
+                  : "5 s warm-up"}
+              </span>
+            </summary>
+            <div className="benchmark-body">
+              <p>
+                Measure tracking performance after 5 seconds of warm-up. Camera
+                stops automatically when the run ends.
+              </p>
+              <div className="benchmark-fields">
+                <label>
+                  Measurement duration
+                  <select
+                    value={session.benchmarkSeconds}
+                    onChange={(event) =>
+                      session.setBenchmarkSeconds(Number(event.target.value))
+                    }
+                    disabled={busy}
+                  >
+                    <option value={30}>30 seconds</option>
+                    <option value={60}>60 seconds</option>
+                    <option value={120}>120 seconds</option>
+                  </select>
+                </label>
+                <label>
+                  Condition
+                  <select
+                    value={session.condition}
+                    onChange={(event) =>
+                      session.setCondition(event.target.value)
+                    }
+                    disabled={busy}
+                  >
+                    {[
+                      "Baseline",
+                      "Low light",
+                      "Busy background",
+                      "Signer variation",
+                    ].map((value) => (
+                      <option key={value}>{value}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="hardware-label">
+                Device / CPU notes (optional)
+                <input
+                  value={session.hardware}
+                  maxLength={200}
+                  onChange={(event) => session.setHardware(event.target.value)}
+                  placeholder="e.g. laptop model, CPU, RAM"
+                  disabled={busy}
+                />
+              </label>
+              <button
+                className="secondary-button"
+                onClick={session.startBenchmark}
+                disabled={busy}
+              >
+                Run timed benchmark
+              </button>
+              {session.benchmarkProgress && (
+                <p className="benchmark-progress" role="status">
+                  {session.benchmarkProgress.stage === "warmup"
+                    ? "Warming up"
+                    : session.benchmarkProgress.stage === "measuring"
+                      ? "Measuring"
+                      : session.benchmarkProgress.stage === "complete"
+                        ? "Finished"
+                        : session.benchmarkProgress.stage === "connecting"
+                          ? "Connecting"
+                          : "Run interrupted"}
+                  {session.benchmarkProgress.remainingSeconds > 0
+                    ? ` · ${session.benchmarkProgress.remainingSeconds} s remaining`
+                    : ""}
+                </p>
+              )}
+              {session.benchmarkReport && (
+                <div className="benchmark-result">
+                  <strong>
+                    {session.benchmarkReport.valid_timing_run
+                      ? "Timing run complete"
+                      : "Incomplete or empty run"}
+                  </strong>
+                  <div className="benchmark-numbers">
+                    <span>
+                      <b>{session.benchmarkReport.fps?.toFixed(1) ?? "—"}</b>FPS
+                    </span>
+                    <span>
+                      <b>
+                        {session.benchmarkReport.roundtrip_ms?.mean.toFixed(
+                          0,
+                        ) ?? "—"}{" "}
+                        ms
+                      </b>
+                      Mean round trip
+                    </span>
+                    <span>
+                      <b>
+                        {session.benchmarkReport.roundtrip_ms?.p95.toFixed(0) ??
+                          "—"}{" "}
+                        ms
+                      </b>
+                      P95 round trip
+                    </span>
+                  </div>
+                  <p>
+                    {session.benchmarkReport.completed_frames} measured frames
+                    over {session.benchmarkReport.measured_seconds.toFixed(1)}{" "}
+                    s. Warm-up excluded.
+                  </p>
+                  <button
+                    className="secondary-button"
+                    onClick={session.downloadBenchmark}
+                  >
+                    Download benchmark JSON
+                  </button>
+                </div>
+              )}
+              <p className="benchmark-limitation">
+                Measures timing and landmark availability only, not recognition
+                accuracy. Keep setup and signing activity consistent across
+                conditions.
+              </p>
+            </div>
+          </details>
           <details className="diagnostics">
             <summary>
               Session details <span>{session.metrics.fps.toFixed(1)} FPS</span>
