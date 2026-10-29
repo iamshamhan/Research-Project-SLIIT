@@ -1,0 +1,5 @@
+# never commit raw data or big arrays
+data/raw/
+data/landmarks/
+data/sentences/npy/
+__pycache__/

@@ -9,3 +9,7 @@ benchmark-results/
 *.tsbuildinfo
 *.log
 SignBridge_Codex_Handoff.txt
+data/raw/
+data/landmarks/
+data/sentences/npy/
+outputs/manifest.csv
