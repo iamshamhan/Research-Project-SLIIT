@@ -1455,3 +1455,76 @@ footer .small-dot {
     font-size: 32px;
   }
 }
+/* Keep the communication switch centered independently of header content. */
+.app-header {
+  position: relative;
+}
+.app-header > .direction-nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.app-header > .header-center {
+  margin-left: auto;
+  margin-right: 16px;
+}
+.primary-button {
+  min-width: 148px;
+  min-height: 44px;
+  padding: 11px 22px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+.primary-button > span {
+  font-size: 10px;
+}
+@media (min-width: 1001px) {
+  .camera-card {
+    grid-template-rows: 49px minmax(0, 1fr) 68px;
+  }
+}
+@media (max-width: 1100px) {
+  .app-header > .header-center {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .app-header {
+    align-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 0;
+  }
+  .app-header > .direction-nav {
+    position: static;
+    transform: none;
+    order: 3;
+    margin: 0 auto;
+    flex-basis: auto;
+  }
+  .app-header > .icon-button {
+    margin-left: auto;
+  }
+  .app-shell {
+    grid-template-rows: 110px auto 1fr auto;
+  }
+  .doctor-shell {
+    grid-template-rows: 110px auto auto 1fr auto;
+  }
+  .app-header .brand {
+    flex: 1;
+  }
+  .app-header > .direction-nav:before {
+    content: none;
+  }
+  .primary-button {
+    min-width: 138px;
+    font-size: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .app-header > .direction-nav {
+    flex-basis: 100%;
+    justify-content: center;
+  }
+}
