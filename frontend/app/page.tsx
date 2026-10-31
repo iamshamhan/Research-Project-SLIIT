@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Navigation from "./navigation";
 import { useSignBridge } from "./use-signbridge";
 import { useEnglishTranslation } from "./use-english-translation";
 
@@ -87,6 +88,7 @@ export default function Home() {
             <small>Healthcare communication</small>
           </span>
         </a>
+        <Navigation />
         <div className="header-center">
           <span className="small-dot" />A little closer to understanding
         </div>

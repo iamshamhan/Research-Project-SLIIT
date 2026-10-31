@@ -5,11 +5,13 @@ from concurrent.futures import ThreadPoolExecutor
 import cv2
 import mediapipe as mp
 import numpy as np
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from pipeline import TemporalPipeline
 from translation import translate_sinhala
+from online_translation import translate_online
+from typing import Literal
 
 app = FastAPI(title="SignBridge local inference")
 app.add_middleware(CORSMiddleware,
@@ -18,6 +20,22 @@ app.add_middleware(CORSMiddleware,
 
 class TranslationRequest(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
+
+class OnlineTranslationRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=500)
+    source: Literal['en', 'si']
+
+@app.post('/translate/online')
+def online_translate(request: OnlineTranslationRequest):
+    text = request.text.strip()
+    if not text or len(text.encode('utf-8')) > 500:
+        raise HTTPException(422, 'Use a shorter message (maximum 500 UTF-8 bytes).')
+    try:
+        return translate_online(text, request.source)
+    except ValueError as error:
+        raise HTTPException(502, str(error)) from None
+    except Exception:
+        raise HTTPException(502, 'Cannot reach the online translation service. Check your internet connection.') from None
 
 @app.post('/translate/sinhala-to-english')
 def translate(request: TranslationRequest):
